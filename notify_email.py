@@ -8,6 +8,7 @@ from GitHub Actions secrets when running in the scheduled workflow.
 Never hardcode these values.
 """
 
+import json
 import os
 import smtplib
 from email.mime.text import MIMEText
@@ -22,6 +23,53 @@ def _require_env(name):
             "Check your .env file (local) or repo secrets (GitHub Actions)."
         )
     return value
+
+
+def _load_signup_recipients(path="recipients.json"):
+    """
+    Load email addresses that signed up through the website's form.
+
+    A Cloudflare Worker commits new addresses into this file automatically
+    when someone submits the sign-up form - see the project README for how
+    that's wired up. Returns an empty list if the file doesn't exist yet,
+    since that's a normal state (nobody has signed up through the site
+    yet, or this is a local test run without the file present).
+    """
+    if not os.path.exists(path):
+        return []
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _get_recipients():
+    """
+    Combine the fixed ALERT_RECIPIENTS secret (your own/close friends'
+    addresses, set by hand) with the dynamic list of website sign-ups in
+    recipients.json. Keeping ALERT_RECIPIENTS as a base list means alerts
+    still reach you even if recipients.json is ever empty or missing.
+    """
+    fixed = [
+        address.strip()
+        for address in os.environ.get("ALERT_RECIPIENTS", "").split(",")
+        if address.strip()
+    ]
+    signups = [address.strip() for address in _load_signup_recipients() if address.strip()]
+
+    # Dedupe while preserving order, so the same address listed in both
+    # places (or submitted twice) only gets one copy of the email.
+    seen = set()
+    combined = []
+    for address in fixed + signups:
+        if address.lower() not in seen:
+            seen.add(address.lower())
+            combined.append(address)
+
+    if not combined:
+        raise RuntimeError(
+            "No alert recipients found - set ALERT_RECIPIENTS and/or "
+            "make sure recipients.json has at least one address."
+        )
+    return combined
 
 
 def _build_email_body(listings):
@@ -55,11 +103,7 @@ def send_digest_email(listings):
 
     sender = _require_env("GMAIL_ADDRESS")
     app_password = _require_env("GMAIL_APP_PASSWORD")
-    recipients = [
-        address.strip()
-        for address in _require_env("ALERT_RECIPIENTS").split(",")
-        if address.strip()
-    ]
+    recipients = _get_recipients()
 
     message = MIMEText(_build_email_body(listings), "plain", "utf-8")
     message["Subject"] = f"{len(listings)} new Leamington housing match(es)"
