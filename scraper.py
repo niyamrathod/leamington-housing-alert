@@ -44,6 +44,13 @@ REQUEST_DELAY_SECONDS = 3
 def _get_soup(url):
     """Fetch a URL and return a parsed BeautifulSoup document."""
     response = requests.get(url, headers=HEADERS, timeout=15)
+    if not response.ok:
+        # Temporary diagnostics: a 401 from Spa Estates showed up only when
+        # running in GitHub Actions, never locally, so we need to see what
+        # the response actually says before deciding what's going on.
+        print(f"  DEBUG: {response.status_code} response from {url}")
+        print(f"  DEBUG: response headers: {dict(response.headers)}")
+        print(f"  DEBUG: response body (first 500 chars): {response.text[:500]!r}")
     response.raise_for_status()  # raises on 4xx/5xx so failures aren't silent
     return BeautifulSoup(response.text, "html.parser")
 
