@@ -6,10 +6,10 @@ matches a saved search, and includes a standalone calculator for
 splitting rent/bills by room size once a house is found.
 
 It deliberately does **not** scrape Rightmove, Zoopla, SpareRoom, or
-OnTheMarket — their terms of use prohibit automated scraping. Set up
-their own native saved-search email alerts separately if you want that
-coverage too; this tool only covers smaller independent agents that
-don't offer their own alerts (currently: [Spa Estates](https://spaestates.com)).
+OnTheMarket, since their terms of use prohibit automated scraping. Set
+up their own native saved-search email alerts separately if you want
+that coverage too. This tool only covers smaller independent agents
+that don't offer their own alerts (currently: [Spa Estates](https://spaestates.com)).
 
 A live project page (with an email sign-up form) and a browser version
 of the bill-split calculator are hosted at
@@ -35,17 +35,17 @@ billsplit.py      standalone terminal bill-split calculator
 
 ## 1. Accounts you'll need
 
-- **GitHub** — this repo already exists; you just need secrets set on it (below).
-- **Gmail** — used to send the alert emails.
+- **GitHub**: this repo already exists, you just need to set secrets on it (see below).
+- **Gmail**: used to send the alert emails.
   1. Turn on **2-Step Verification**: https://myaccount.google.com/security
   2. Generate an **App Password**: https://myaccount.google.com/apppasswords
-     (this is a 16-character code, separate from your normal password —
-     copy it immediately, Google only shows it once)
-- **healthchecks.io** — free account at https://healthchecks.io. Create a
+     (this is a 16-character code, separate from your normal password.
+     Copy it immediately, since Google only shows it once)
+- **healthchecks.io**: free account at https://healthchecks.io. Create a
   check named e.g. "Leamington Housing Alert" with a **Period** of 60
   minutes and a **Grace period** of 30 minutes (generous enough to
   absorb normal GitHub Actions runner startup delays). Copy its ping URL.
-- **cron-job.org** — free account at https://cron-job.org, used to
+- **cron-job.org**: free account at https://cron-job.org, used to
   trigger the GitHub Actions workflow on a schedule (see section 4).
 
 ## 2. Running it locally
@@ -64,8 +64,9 @@ ALERT_RECIPIENTS=you@example.com,friend@example.com
 HEALTHCHECK_URL=https://hc-ping.com/your-uuid-here
 ```
 
-`.env` is gitignored and never committed — it's for local testing only.
-In GitHub Actions, the same variable names come from repo secrets instead.
+`.env` is gitignored and never committed. It's for local testing only,
+since in GitHub Actions the same variable names come from repo secrets
+instead.
 
 Useful test scripts, each runnable directly (`.venv\Scripts\python.exe <script>.py`):
 
@@ -77,13 +78,13 @@ Useful test scripts, each runnable directly (`.venv\Scripts\python.exe <script>.
 | `test_email.py` | Sends a real digest email using fake listing data |
 | `billsplit.py` | The terminal bill-split calculator |
 
-Run the whole pipeline for real with `main.py` — this is exactly what
-the scheduled workflow runs.
+Running `main.py` directly runs the whole pipeline for real, exactly
+like the scheduled workflow does.
 
 ## 3. Repo secrets
 
 Set these under **Settings → Secrets and variables → Actions → New
-repository secret** — same names and values as your `.env`:
+repository secret**, using the same names and values as your `.env`:
 
 - `GMAIL_ADDRESS`
 - `GMAIL_APP_PASSWORD`
@@ -107,7 +108,7 @@ tokens → Fine-grained tokens → Generate new token**
   - `Accept: application/vnd.github+json`
   - `Content-Type: application/json`
 - Body: `{"ref":"main"}`
-- Schedule: every 30–60 minutes
+- Schedule: every 30-60 minutes
 
 A successful trigger returns **204 No Content**. Check the repo's
 **Actions** tab to confirm runs are actually happening on schedule.
@@ -124,6 +125,6 @@ To forget one specific listing, just delete its key.
 Each scraping source is one function in `scraper.py` (see
 `scrape_spa_estates()`) returning a list of dicts with `id`, `url`,
 `source`, `price_pcm`, `bedrooms`, `area`, and `title`. Add the new
-function to the `SOURCES` list at the bottom of the file — nothing else
+function to the `SOURCES` list at the bottom of the file. Nothing else
 in the pipeline needs to change. Before adding a source, check its
 robots.txt and terms of use for scraping restrictions first.
