@@ -1,0 +1,9 @@
+[
+  {
+    "name": "niyam",
+    "max_price": 700,
+    "min_bedrooms": 3,
+    "max_bedrooms": 5,
+    "area_keywords": ["Leamington Spa", "CV31", "CV32"]
+  }
+]

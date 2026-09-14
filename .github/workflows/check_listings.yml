@@ -1,0 +1,55 @@
+name: Check Listings
+
+# Triggered externally by cron-job.org calling the GitHub REST API's
+# workflow_dispatch endpoint - deliberately no `schedule:` block, since
+# GitHub's native cron scheduling for Actions is documented as
+# unreliable/delayed.
+on:
+  workflow_dispatch:
+
+# Stops two runs from overlapping and racing to commit/push seen.json -
+# e.g. someone manually re-running this in the GitHub UI at the same
+# moment cron-job.org's scheduled call fires.
+concurrency:
+  group: check-listings
+  cancel-in-progress: false
+
+# Needed so the final step can commit the updated seen.json back to the
+# repo using the default GITHUB_TOKEN.
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run alert check
+        env:
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          ALERT_RECIPIENTS: ${{ secrets.ALERT_RECIPIENTS }}
+          HEALTHCHECK_URL: ${{ secrets.HEALTHCHECK_URL }}
+        run: python main.py
+
+      - name: Commit and push seen.json if it changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet -- seen.json; then
+            git add seen.json
+            git commit -m "Update seen.json [skip ci]"
+            git push
+          else
+            echo "seen.json unchanged - nothing to commit"
+          fi
